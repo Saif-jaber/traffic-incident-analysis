@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traffic Incident Analysis Using Vega-Lite</title>
+    <script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-lite@5"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background-color: #f5f5f5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        .header {
+            position: sticky;
+            top: 0;
+            background-color: white;
+            width: 100%;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            padding: 10px 0;
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+            margin: 10px 0;
+            font-size: 24px;
+        }
+        .nav-bar {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        .nav-btn {
+            padding: 8px 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .nav-btn:hover {
+            background-color: #0056b3;
+        }
+        .nav-btn svg {
+            width: 16px;
+            height: 16px;
+            fill: white;
+        }
+        h2 {
+            color: #444;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 90%;
+            max-width: 1200px;
+            margin-bottom: 30px;
+        }
+        .vis-container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+        .code-block {
+            margin-top: 20px;
+            width: 100%;
+        }
+        pre {
+            background-color: #f8f8f8;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 15px;
+            overflow-x: auto;
+            font-size: 13px;
+            line-height: 1.4;
+            white-space: pre;
+        }
+        .full-code {
+            margin: 40px 0;
+            width: 90%;
+            max-width: 1200px;
+        }
+        .full-code h2 {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Traffic Incident Analysis Using Vega-Lite</h1>
+        <div class="nav-bar">
+            <button class="nav-btn" onclick="scrollToSection('task1')">Task 1</button>
+            <button class="nav-btn" onclick="scrollToSection('task2')">Task 2</button>
+            <button class="nav-btn" onclick="scrollToSection('task3')">Task 3</button>
+            <button class="nav-btn" onclick="scrollToSection('fullCodeSection')">Full Code</button>
+            <button class="nav-btn" id="downloadBtn">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+                </svg>
+                Code file download
+            </button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div id="task1">
+            <h2>Task 1: Accident Distribution by Day of the Week</h2>
+            <div id="vis1" class="vis-container"></div>
+            <div class="code-block">
+                <pre id="code1"></pre>
+            </div>
+        </div>
+
+        <div id="task2">
+            <h2>Task 2: Accident Distribution by Hour of the Day</h2>
+            <div id="vis2" class="vis-container"></div>
+            <div class="code-block">
+                <pre id="code2"></pre>
+            </div>
+        </div>
+
+        <div id="task3">
+            <h2>Task 3: Map of Accident Density Across Dubai</h2>
+            <div id="vis3" class="vis-container"></div>
+            <div class="code-block">
+                <pre id="code3"></pre>
+            </div>
+        </div>
+    </div>
+
+    <div id="fullCodeSection" class="full-code">
+        <h2>Complete HTML Code</h2>
+        <pre id="fullCode"></pre>
+    </div>
+
+    <script>
+        function scrollToSection(id) {
+            document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
+        }
+
+        document.getElementById('downloadBtn').addEventListener('click', function() {
+            const htmlContent = document.documentElement.outerHTML;
+            const blob = new Blob([htmlContent], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'traffic-incident-analysis.html';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        const spec1 = {
+            $schema: "https://vega.github.io/schema/vega-lite/v5.json",
+            title: {
+                text: "Accident Distribution by Day of the Week",
+                fontSize: 16,
+                fontWeight: "bold"
+            },
+            width: 600,
+            height: 400,
+            data: {
+                url: "https://raw.githubusercontent.com/sheriefAbdallah/CS318/refs/heads/main/Traffic_Incidents.csv",
+                format: {
+                    type: "csv",
+                    parse: {
+                        acci_time: "date:'%d/%m/%Y %H:%M:%S'"
+                    }
+                }
+            },
+            mark: "bar",
+            encoding: {
+                x: {
+                    timeUnit: "day",
+                    field: "acci_time",
+                    type: "ordinal",
+                    scale: {
+                        domain: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+                    },
+                    title: "Day of the Week"
+                },
+                y: {
+                    aggregate: "count",
+                    type: "quantitative",
+                    title: "Number of Accidents"
+                },
+                color: {
+                    timeUnit: "day",
+                    field: "acci_time",
+                    type: "nominal",
+                    scale: {
+                        domain: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+                        scheme: "tableau10"
+                    },
+                    legend: {
+                        title: "Day of the Week"
+                    }
+                },
+                tooltip: [
+                    { timeUnit: "day", field: "acci_time", title: "Day" },
+                    { aggregate: "count", title: "Accidents" }
+                ]
+            }
+        };
+        vegaEmbed("#vis1", spec1);
+        document.getElementById("code1").textContent = `const spec1 = ${JSON.stringify(spec1, null, 2)};\nvegaEmbed("#vis1", spec1);`;
+
+        const spec2 = {
+            $schema: "https://vega.github.io/schema/vega-lite/v5.json",
+            title: {
+                text: "Accident Distribution by Hour of the Day",
+                fontSize: 16,
+                fontWeight: "bold"
+            },
+            width: 600,
+            height: 400,
+            data: {
+                url: "https://raw.githubusercontent.com/sheriefAbdallah/CS318/refs/heads/main/Traffic_Incidents.csv",
+                format: {
+                    type: "csv",
+                    parse: {
+                        acci_time: "date:'%d/%m/%Y %H:%M:%S'"
+                    }
+                }
+            },
+            mark: {
+                type: "line",
+                point: true
+            },
+            encoding: {
+                x: {
+                    timeUnit: "hours",
+                    field: "acci_time",
+                    type: "ordinal",
+                    title: "Hour of the Day (0-23)"
+                },
+                y: {
+                    aggregate: "count",
+                    type: "quantitative",
+                    title: "Number of Accidents"
+                },
+                color: {
+                    timeUnit: "day",
+                    field: "acci_time",
+                    type: "nominal",
+                    scale: {
+                        domain: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+                        scheme: "tableau10"
+                    },
+                    legend: {
+                        title: "Day of the Week"
+                    }
+                },
+                tooltip: [
+                    { timeUnit: "hours", field: "acci_time", title: "Hour" },
+                    { timeUnit: "day", field: "acci_time", title: "Day" },
+                    { aggregate: "count", title: "Accidents" }
+                ]
+            }
+        };
+        vegaEmbed("#vis2", spec2);
+        document.getElementById("code2").textContent = `const spec2 = ${JSON.stringify(spec2, null, 2)};\nvegaEmbed("#vis2", spec2);`;
+
+        const spec3 = {
+            $schema: "https://vega.github.io/schema/vega-lite/v5.json",
+            title: {
+                text: "Accident Density Map of Dubai",
+                fontSize: 16,
+                fontWeight: "bold",
+                anchor: "middle"
+            },
+            width: 800,
+            height: 600,
+            projection: {
+                type: "mercator",
+                center: [55.3, 25.2],
+                scale: 60000
+            },
+            layer: [
+                {
+                    data: {
+                        url: "https://raw.githubusercontent.com/sbma44/uber-cities/master/geojson/dubai.geojson",
+                        format: { type: "json", property: "features" }
+                    },
+                    mark: {
+                        type: "geoshape",
+                        fill: "#e0e0e0",
+                        stroke: "#333333",
+                        strokeWidth: 1
+                    }
+                },
+                {
+                    data: {
+                        url: "https://raw.githubusercontent.com/sheriefAbdallah/CS318/refs/heads/main/Traffic_Incidents.csv",
+                        format: {
+                            type: "csv",
+                            parse: {
+                                acci_x: "number",
+                                acci_y: "number"
+                            }
+                        }
+                    },
+                    transform: [
+                        { filter: "datum.acci_y > 23 && datum.acci_y < 56 && datum.acci_x > 24.5 && datum.acci_x < 25.5" }
+                    ],
+                    mark: {
+                        type: "circle",
+                        opacity: 0.3
+                    },
+                    encoding: {
+                        longitude: { field: "acci_y", type: "quantitative" },
+                        latitude: { field: "acci_x", type: "quantitative" },
+                        size: {
+                            aggregate: "count",
+                            type: "quantitative",
+                            title: "Number of Accidents",
+                            scale: { range: [0, 500] }
+                        },
+                        color: {
+                            aggregate: "count",
+                            type: "quantitative",
+                            scale: { scheme: "plasma" },
+                            title: "Accident Density"
+                        },
+                        tooltip: [
+                            { field: "acci_x", type: "quantitative", title: "Latitude" },
+                            { field: "acci_y", type: "quantitative", title: "Longitude" },
+                            { aggregate: "count", title: "Accidents" }
+                        ]
+                    }
+                }
+            ],
+            legend: {
+                orient: "top",
+                title: "Accident Density",
+                titleFontSize: 12,
+                titleFontWeight: "bold",
+                labelFontSize: 10,
+                symbolSize: 100,
+                gradientLength: 200
+            }
+        };
+        vegaEmbed("#vis3", spec3);
+        document.getElementById("code3").textContent = `const spec3 = ${JSON.stringify(spec3, null, 2)};\nvegaEmbed("#vis3", spec3);`;
+
+        function escapeHTML(html) {
+           return html
+               .replace(/&/g, "&amp;")
+               .replace(/</g, "&lt;")
+               .replace(/>/g, "&gt;")
+               .replace(/"/g, "&quot;")
+               .replace(/'/g, "&#39;");
+       }
+
+        document.getElementById("fullCode").innerHTML = escapeHTML(document.documentElement.outerHTML);
+
+    </script>
+</body>
+</html>
